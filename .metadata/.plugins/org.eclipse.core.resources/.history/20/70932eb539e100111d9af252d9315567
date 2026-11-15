@@ -1,0 +1,148 @@
+/*
+ * CLK_Functions.c
+ *
+ *  Created on: 26 de out. de 2026
+ *      Author: edipo
+ */
+#include "CLK_Functions.h"
+
+void CLK_Init(void){
+
+
+	/* 1. Destrava configuração de energia (LDO ativo na placa WeAct H743) */
+	PWR->CR3 &= ~PWR_CR3_SCUEN; // Garante que o update está habilitado (caso necessário)
+	PWR->CR3 |= PWR_CR3_LDOEN;
+	while (!(PWR->CSR1 & PWR_CSR1_ACTVOSRDY));
+
+	/* 2. Configura VOS1 primeiro */
+	PWR->D3CR = (PWR->D3CR & ~PWR_D3CR_VOS_Msk) | (3UL << PWR_D3CR_VOS_Pos);
+	while (!(PWR->D3CR & PWR_D3CR_VOSRDY));
+
+	/* 3. Habilita clock do SYSCFG e ativa Overdrive (VOS0) para chegar a 480 MHz */
+	RCC->APB4ENR |= RCC_APB4ENR_SYSCFGEN;
+	volatile uint32_t dummy = RCC->APB4ENR;
+	(void)dummy;
+
+	SYSCFG->PWRCR |= SYSCFG_PWRCR_ODEN;
+	while (!(PWR->D3CR & PWR_D3CR_VOSRDY));
+
+	/* 4. Habilita HSE (Cristal externo de 25 MHz da WeAct) */
+	RCC->CR |= RCC_CR_HSEON;
+	while (!(RCC->CR & RCC_CR_HSERDY));
+
+	/* 5. Configura Flash para 240 MHz AXI (4 Wait States + WRHIGHFREQ = 2) */
+	FLASH->ACR = FLASH_ACR_WRHIGHFREQ_1 | FLASH_ACR_LATENCY_4WS;
+	while ((FLASH->ACR & FLASH_ACR_LATENCY_Msk) != FLASH_ACR_LATENCY_4WS);
+
+	/* 6. Configura Prescalers dos barramentos (SYSCLK = 480 MHz, AHB = 240 MHz, APBs = 120 MHz) */
+	RCC->D1CFGR = (0x0UL << RCC_D1CFGR_D1CPRE_Pos)   // Core = 480 MHz (/1)
+	                		| (0x8UL << RCC_D1CFGR_HPRE_Pos)     // AHB  = 240 MHz (/2)
+							| (0x4UL << RCC_D1CFGR_D1PPRE_Pos);  // APB3 = 120 MHz (/2)
+
+	RCC->D2CFGR = (0x4UL << RCC_D2CFGR_D2PPRE1_Pos)  // APB1 = 120 MHz (/2)
+	                		| (0x4UL << RCC_D2CFGR_D2PPRE2_Pos); // APB2 = 120 MHz (/2)
+
+	RCC->D3CFGR = (0x4UL << RCC_D3CFGR_D3PPRE_Pos);  // APB4 = 120 MHz (/2)
+
+	/* 7. Desliga PLL1 antes de configurar */
+	RCC->CR &= ~RCC_CR_PLL1ON;
+	while (RCC->CR & RCC_CR_PLL1RDY);
+
+	/* 8. Configura divisor M = 5 (25 MHz / 5 = 5 MHz na entrada do PLL) */
+	RCC->PLLCKSELR = (5UL << RCC_PLLCKSELR_DIVM1_Pos) | RCC_PLLCKSELR_PLLSRC_HSE;
+
+	/* 9. Configura multiplicador N = 192 (Fvco = 960 MHz) e divisor P = 2 (480 MHz) */
+	RCC->PLL1DIVR = ((192UL - 1UL) << RCC_PLL1DIVR_N1_Pos)
+	                		  | ((2UL   - 1UL) << RCC_PLL1DIVR_P1_Pos)
+							  | ((4UL   - 1UL) << RCC_PLL1DIVR_Q1_Pos)
+							  | ((4UL   - 1UL) << RCC_PLL1DIVR_R1_Pos);
+
+	/* 10. Configura faixa de entrada (4-8 MHz), Wide VCO (PLL1VCOSEL = 0) e habilita saída P */
+	RCC->PLLCFGR = RCC_PLLCFGR_PLL1RGE_2    // Entrada 5 MHz (faixa 4 a 8 MHz)
+			| RCC_PLLCFGR_DIVP1EN;     // Habilita saída P1 (PLL1VCOSEL fica em 0 = Wide VCO)
+
+	/* 11. Liga PLL1 e aguarda estabilizar */
+	RCC->CR |= RCC_CR_PLL1ON;
+	while (!(RCC->CR & RCC_CR_PLL1RDY));
+
+	/* 12. Seleciona PLL1 como clock principal do sistema (SYSCLK) */
+	RCC->CFGR = (RCC->CFGR & ~RCC_CFGR_SW_Msk) | RCC_CFGR_SW_PLL1;
+	while ((RCC->CFGR & RCC_CFGR_SWS_Msk) != RCC_CFGR_SWS_PLL1);
+
+	/* 13. Atualiza a variável global do CMSIS */
+	//	    SystemCoreClock = 480000000UL;
+
+	/*
+	// Habilita alimentação e configura VOS0
+	RCC->APB4ENR |= RCC_APB4ENR_SYSCFGEN;
+
+	PWR->D3CR &= ~PWR_D3CR_VOS_Msk;
+	PWR->D3CR |= (3UL << PWR_D3CR_VOS_Pos);    // VOS1
+
+	while(!(PWR->D3CR & PWR_D3CR_VOSRDY));
+
+	SYSCFG->PWRCR |= SYSCFG_PWRCR_ODEN;        // VOS0
+
+	while(!(PWR->D3CR & PWR_D3CR_VOSRDY));
+	//while(!(PWR->CSR1 & PWR_CSR1_VOSRDY));
+	// Habilita HSE
+	RCC->CR |= RCC_CR_HSEON;
+
+	while(!(RCC->CR & RCC_CR_HSERDY));
+
+	// Configura FLASH para alta frequência
+	FLASH->ACR = FLASH_ACR_WRHIGHFREQ_1 | FLASH_ACR_LATENCY_4WS;
+
+	while((FLASH->ACR & FLASH_ACR_LATENCY_Msk) != FLASH_ACR_LATENCY_4WS);
+
+	// Prescalers
+	RCC->D1CFGR =
+			(0x8 << RCC_D1CFGR_HPRE_Pos)      // AHB = SYSCLK/2 = 240MHz
+			| (0x4 << RCC_D1CFGR_D1PPRE_Pos);   // APB3 = 120MHz
+
+	RCC->D2CFGR =
+			(0x4 << RCC_D2CFGR_D2PPRE1_Pos)   // APB1 = 120MHz
+			| (0x4 << RCC_D2CFGR_D2PPRE2_Pos);  // APB2 = 120MHz
+
+	RCC->D3CFGR = (0x4 << RCC_D3CFGR_D3PPRE_Pos);   // APB4 = 120MHz
+
+	// Desabilita PLL1
+	RCC->CR &= ~RCC_CR_PLL1ON;
+
+	while(RCC->CR & RCC_CR_PLL1RDY);
+
+	// PLL source = HSE
+	RCC->PLLCKSELR =
+			(5 << RCC_PLLCKSELR_DIVM1_Pos)    // M = 5
+			| RCC_PLLCKSELR_PLLSRC_HSE;
+
+	//
+	// Fvco = (25MHz / 5) * 192 = 960MHz
+	// SYSCLK = 960 / 2 = 480MHz
+
+	RCC->PLL1DIVR =
+			((192 - 1) << RCC_PLL1DIVR_N1_Pos)
+			| ((2   - 1) << RCC_PLL1DIVR_P1_Pos)
+			| ((4   - 1) << RCC_PLL1DIVR_Q1_Pos)
+			| ((4   - 1) << RCC_PLL1DIVR_R1_Pos);
+
+	RCC->PLLCFGR =
+			RCC_PLLCFGR_PLL1VCOSEL
+			| RCC_PLLCFGR_DIVP1EN;
+
+	// Liga PLL1
+	RCC->CR |= RCC_CR_PLL1ON;
+
+	while(!(RCC->CR & RCC_CR_PLL1RDY));
+
+
+	// Seleciona PLL1 como SYSCLK
+	RCC->CFGR &= ~RCC_CFGR_SW_Msk;
+	RCC->CFGR |= RCC_CFGR_SW_PLL1;
+
+	while((RCC->CFGR & RCC_CFGR_SWS_Msk) != RCC_CFGR_SWS_PLL1);
+
+	//SystemCoreClock = 480000000;
+
+	 */
+}

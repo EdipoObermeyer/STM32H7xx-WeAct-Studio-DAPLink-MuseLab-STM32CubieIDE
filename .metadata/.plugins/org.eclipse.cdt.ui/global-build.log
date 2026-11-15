@@ -1,0 +1,26 @@
+18:15:54 **** Incremental Build of configuration Debug for project STM32H743_V001 ****
+make -j8 all 
+arm-none-eabi-gcc "../Src/main.c" -mcpu=cortex-m7 -std=gnu11 -g3 -DDEBUG -DSTM32 -DSTM32H7SINGLE -DSTM32H7 -DSTM32H743VITx -DSTM32H743xx -c -I../Inc -I"E:/Documentos/STM32H7xx-WeAct-Studio-DAPLink-MuseLab-STM32CubieIDE/STM32H743_V001/chip_headers/CMSIS/Include" -I"E:/Documentos/STM32H7xx-WeAct-Studio-DAPLink-MuseLab-STM32CubieIDE/STM32H743_V001/chip_headers/CMSIS/Device/ST/STM32H7xx/Include" -O0 -ffunction-sections -fdata-sections -Wall -fstack-usage -fcyclomatic-complexity -MMD -MP -MF"Src/main.d" -MT"Src/main.o" --specs=nano.specs -mfpu=fpv5-d16 -mfloat-abi=hard -mthumb -o "Src/main.o"
+arm-none-eabi-gcc "../Src/syscalls.c" -mcpu=cortex-m7 -std=gnu11 -g3 -DDEBUG -DSTM32 -DSTM32H7SINGLE -DSTM32H7 -DSTM32H743VITx -DSTM32H743xx -c -I../Inc -I"E:/Documentos/STM32H7xx-WeAct-Studio-DAPLink-MuseLab-STM32CubieIDE/STM32H743_V001/chip_headers/CMSIS/Include" -I"E:/Documentos/STM32H7xx-WeAct-Studio-DAPLink-MuseLab-STM32CubieIDE/STM32H743_V001/chip_headers/CMSIS/Device/ST/STM32H7xx/Include" -O0 -ffunction-sections -fdata-sections -Wall -fstack-usage -fcyclomatic-complexity -MMD -MP -MF"Src/syscalls.d" -MT"Src/syscalls.o" --specs=nano.specs -mfpu=fpv5-d16 -mfloat-abi=hard -mthumb -o "Src/syscalls.o"
+arm-none-eabi-gcc "../Src/sysmem.c" -mcpu=cortex-m7 -std=gnu11 -g3 -DDEBUG -DSTM32 -DSTM32H7SINGLE -DSTM32H7 -DSTM32H743VITx -DSTM32H743xx -c -I../Inc -I"E:/Documentos/STM32H7xx-WeAct-Studio-DAPLink-MuseLab-STM32CubieIDE/STM32H743_V001/chip_headers/CMSIS/Include" -I"E:/Documentos/STM32H7xx-WeAct-Studio-DAPLink-MuseLab-STM32CubieIDE/STM32H743_V001/chip_headers/CMSIS/Device/ST/STM32H7xx/Include" -O0 -ffunction-sections -fdata-sections -Wall -fstack-usage -fcyclomatic-complexity -MMD -MP -MF"Src/sysmem.d" -MT"Src/sysmem.o" --specs=nano.specs -mfpu=fpv5-d16 -mfloat-abi=hard -mthumb -o "Src/sysmem.o"
+../Src/main.c:8:6: warning: return type of 'main' is not 'int' [-Wmain]
+    8 | void main(void){
+      |      ^~~~
+arm-none-eabi-gcc -o "STM32H743_V001.elf" @"objects.list"   -mcpu=cortex-m7 -T"E:\Documentos\STM32H7xx-WeAct-Studio-DAPLink-MuseLab-STM32CubieIDE\STM32H743_V001\STM32H743VITX_FLASH.ld" --specs=nosys.specs -Wl,-Map="STM32H743_V001.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv5-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+Finished building target: STM32H743_V001.elf
+ 
+arm-none-eabi-size  STM32H743_V001.elf 
+arm-none-eabi-objdump -h -S STM32H743_V001.elf  > "STM32H743_V001.list"
+   text	   data	    bss	    dec	    hex	filename
+   1048	      0	   1568	   2616	    a38	STM32H743_V001.elf
+Finished building: default.size.stdout
+ 
+Finished building: STM32H743_V001.list
+ 
+18:16:03 **** Incremental Build of configuration Debug for project STM32H743_V001 ****
+make -j8 all 
+arm-none-eabi-size  STM32H743_V001.elf 
+   text	   data	    bss	    dec	    hex	filename
+   1048	      0	   1568	   2616	    a38	STM32H743_V001.elf
+Finished building: default.size.stdout
+ 
